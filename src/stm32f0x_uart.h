@@ -68,6 +68,11 @@
 #define SIZEOF_BUFF2	128
 #define SIZEOF_BUFF2_RX		SIZEOF_BUFF2
 
+//---- tipos de paquetes ----
+#define USART_NO_PCKT	0
+#define USART_PCKT_DMX	1
+#define USART_PCKT_RDM	2
+
 //--- Exported functions ---//
 void USART_Config(void);
 void Usart_Time_1ms (void);

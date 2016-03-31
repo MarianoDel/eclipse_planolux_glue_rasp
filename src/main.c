@@ -64,6 +64,10 @@
 #include "synchro.h"
 #include "dmx_transceiver.h"
 
+//librerias RDM
+#include "rdm_frame.h"
+#include "utils.h"
+
 //--- VARIABLES EXTERNAS ---//
 volatile unsigned char timer_1seg = 0;
 
@@ -153,15 +157,22 @@ void TimingDelay_Decrement(void);
 
 void UpdateDMX (unsigned char *, unsigned short, unsigned char);
 void Update_PWM (unsigned short);
-
-void ReadPckt(unsigned char *);
+unsigned char ReadPckt(unsigned char *);
 void ReadPcktR(unsigned char *);
 void ReadPcktS(unsigned char *);
+unsigned char ReadPcktT(unsigned char *);
+void FillHeaderK (RDMHeaderK *, unsigned char);
+
+
 //unsigned char GetValue (unsigned char * , const unsigned short * );
 unsigned short GetValue (unsigned char * );
 
-// ------- del display -------
-
+// ------- de los paquetes RDM -------
+#define RDM_NO_PCKT	0
+#define PCKT_TYPE0	1
+#define PCKT_TYPE1	2
+#define PCKT_TYPE2	3
+#define PCKT_TYPE3	4
 
 
 
@@ -190,16 +201,8 @@ int main(void)
 {
 	unsigned char i;
 	unsigned short ii;
+	unsigned char rdm_is_needed = 0;
 
-#ifdef WITH_GRANDMASTER
-	unsigned short acc = 0;
-	unsigned char dummy = 0;
-#endif
-#ifdef RGB_FOR_CAT
-	unsigned char show_channels_state = 0;
-	unsigned char fixed_data[2];		//la eleccion del usaario en los canales de 0 a 100
-	unsigned char need_to_save = 0;
-#endif
 	//!< At this stage the microcontroller clock setting is already configured,
     //   this is done through SystemInit() function which is called from startup
     //   file (startup_stm32f0xx.s) before to branch to application main.
@@ -689,15 +692,63 @@ int main(void)
 	{
 		if (!timer_standby)		//mando paquete DMX cada 25ms
 		{
-			timer_standby = 25;	//transmito cada 25ms
-			SendDMXPacket(PCKT_INIT);
+			//me fijo si puedo enviar DMX
+			if (SendDMX_GetStatus() == PCKT_END_TX)
+			{
+				SendDMXPacket(PCKT_INIT);
+				timer_standby = 25;	//transmito cada 25ms
+			}
+		}
+
+		if (rdm_is_needed)
+		{
+			//me fijo si puedo enviar y el tipo de paquete que armo
+			if (SendDMX_GetStatus() == PCKT_END_TX)
+			{
+				//puedo enviar
+				switch (rdm_is_needed)	//en rdm_is_needed tengo el tipo de paquete a enviar
+				{
+					case PCKT_TYPE0:
+						//cargo paquete RDM modelo 0
+
+						SendRDMPacket(PCKT_INIT, SIZEOF_PCKT_TYPE0);
+						break;
+
+					case PCKT_TYPE1:
+						//cargo paquete RDM modelo 1
+
+						SendRDMPacket(PCKT_INIT, SIZEOF_PCKT_TYPE1);
+
+						break;
+
+					case PCKT_TYPE2:
+						//cargo paquete RDM modelo 1
+
+						SendRDMPacket(PCKT_INIT, SIZEOF_PCKT_TYPE2);
+
+						break;
+
+					case PCKT_TYPE3:
+						//cargo paquete RDM modelo 1
+
+						SendRDMPacket(PCKT_INIT, SIZEOF_PCKT_TYPE3);
+
+						break;
+
+
+
+
+
+				}
+				rdm_is_needed = RDM_NO_PCKT;
+			}
 		}
 
 		if (rasp_info_ready)
 		{
 			//llego info desde la raspberry
 			rasp_info_ready = 0;
-			ReadPckt(Buff2rx_bkp);
+			rdm_is_needed = ReadPckt(Buff2rx_bkp);
 		}
 
 	}
@@ -710,8 +761,10 @@ int main(void)
 
 //--- End of Main ---//
 
-void ReadPckt(unsigned char * p)
+unsigned char ReadPckt(unsigned char * p)
 {
+	unsigned char resp = 0;
+
 	//me fijo el tipo de paquete
 	switch (*p)
 	{
@@ -723,12 +776,14 @@ void ReadPckt(unsigned char * p)
 			ReadPcktS(p);
 			break;
 
-//		case r:
-//			break;
+		case 't':
+			resp = ReadPcktT(p);	//requiere transmitir RDM
+			break;
 
 		default:
 			break;
 	}
+	return resp;
 }
 
 //en R me llega un parametro general
@@ -839,6 +894,44 @@ void ReadPcktS(unsigned char * p)
 	orig_shine_slider[ii] = new_shine;
 	data1[ii] = new_shine;
 }
+
+//en T me llega un pedido de generar paquete RDM
+//paquete: trdm,x\r\n
+unsigned char ReadPcktT(unsigned char * p)
+{
+	unsigned char pckt_type;
+
+	if (*(p+4) != ',')
+		return RDM_NO_PCKT;
+
+	pckt_type = *(p+5) - '0';
+	return (pckt_type + 1);		//esto es paquete 0 vuelve como 1
+}
+
+
+//completa el Header RDM de Kirno
+//
+void FillHeaderK (RDMHeaderK * pH, unsigned char bytes)
+{
+	pH->start_code = 0xCC;
+
+	pH->dest_uid[0] = 0x0F;
+	pH->dest_uid[1] = 0x0F;
+	pH->dest_uid[2] = 0xFF;
+	pH->dest_uid[3] = 0xFF;
+	pH->dest_uid[4] = 0xFF;
+	pH->dest_uid[5] = 0xFF;
+
+	pH->src_uid [0] = 0x00;
+	pH->src_uid [1] = 0x00;
+	pH->src_uid [2] = 0x00;
+	pH->src_uid [3] = 0x00;
+	pH->src_uid [4] = 0x00;
+	pH->src_uid [5] = 0x00;
+
+
+}
+
 /*
 unsigned char GetValue (unsigned char * pn, const unsigned short * new_val)
 {

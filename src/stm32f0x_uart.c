@@ -87,6 +87,8 @@ volatile unsigned char * pdmx;
 //Reception buffer.
 unsigned char Buff2rx [SIZEOF_BUFF2_RX];
 unsigned char * pBuff2rx;
+volatile unsigned char rdm_bytes_left = 0;
+volatile unsigned char pckt_kind = 0;
 
 //Transmission buffer.
 
@@ -171,51 +173,41 @@ void USART1_IRQHandler(void)
 	{
 		if (USART1->ISR & USART_ISR_TXE)
 		{
-	//		USARTx->CR1 &= ~0x00000088;	//bajo TXEIE bajo TE
-			//USART1->CR1 &= ~USART_CR1_TXEIE;
-			//USARTx->TDR = 0x00;
-
-			if (pdmx < &data1[512])
+			//me fijo el tipo de paquete a enviar
+			if (pckt_kind == USART_PCKT_DMX)
 			{
-				USARTx->TDR = *pdmx;
-				pdmx++;
+				if (pdmx < &data1[512])
+				{
+					USARTx->TDR = *pdmx;
+					pdmx++;
+				}
+				else
+				{
+					pckt_kind = USART_NO_PCKT;
+					USART1->CR1 &= ~USART_CR1_TXEIE;
+					SendDMXPacket(PCKT_UPDATE);
+				}
 			}
-			else
+
+			if (pckt_kind == USART_PCKT_RDM)
 			{
-				USART1->CR1 &= ~USART_CR1_TXEIE;
-				SendDMXPacket(PCKT_UPDATE);
+				if ((pdmx < &data1[512]) && (rdm_bytes_left))
+				{
+					USARTx->TDR = *pdmx;
+					pdmx++;
+					rdm_bytes_left--;
+				}
+				else
+				{
+					//termine de enviar los bytes o hubo un error
+					rdm_bytes_left = 0;
+					pckt_kind = USART_NO_PCKT;
+					USART1->CR1 &= ~USART_CR1_TXEIE;
+					SendRDMPacket(PCKT_UPDATE, 0);
+				}
 			}
-
-/*
-			switch (transmit_mode)
-			{
-				case TRANSMIT_DMX:
-					//activo interrupt
-
-					//envio start code
-
-					break;
-
-				case TRANSMITING_DMX:
-					if (pdmx < &data1[512])
-
-					break;
-
-				case TRANSMIT_RDM:
-
-					break;
-
-				default:
-					transmit_mode = TRANSMIT_DMX;
-					break;
-
-			}
-*/
-
 		}
-
 	}
-
 
 	if ((USART1->ISR & USART_ISR_ORE) || (USART1->ISR & USART_ISR_NE) || (USART1->ISR & USART_ISR_FE))
 	{
@@ -299,9 +291,16 @@ void USART2_IRQHandler(void)
 
 void UsartSendDMX (void)
 {
-	//data1[0] = 0x00;
 	pdmx = &data1[0];
-	//USART_ITConfig(USARTx, USART_IT_TXE, ENABLE);
+	pckt_kind = USART_PCKT_DMX;
+	USART1->CR1 |= USART_CR1_TXEIE;
+}
+
+void UsartSendRDM (unsigned char bytes)
+{
+	pdmx = &data1[0];
+	pckt_kind = USART_PCKT_RDM;
+	rdm_bytes_left = bytes;
 	USART1->CR1 |= USART_CR1_TXEIE;
 }
 
