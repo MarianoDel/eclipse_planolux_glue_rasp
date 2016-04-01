@@ -67,6 +67,7 @@
 //librerias RDM
 #include "rdm_frame.h"
 #include "utils.h"
+#include "rdm_util.h"
 
 //--- VARIABLES EXTERNAS ---//
 volatile unsigned char timer_1seg = 0;
@@ -162,6 +163,7 @@ void ReadPcktR(unsigned char *);
 void ReadPcktS(unsigned char *);
 unsigned char ReadPcktT(unsigned char *);
 void FillHeaderK (RDMHeaderK *, unsigned char);
+void FillMDBK (unsigned char *, unsigned char * , unsigned char);
 
 
 //unsigned char GetValue (unsigned char * , const unsigned short * );
@@ -179,6 +181,7 @@ unsigned short GetValue (unsigned char * );
 #define SIZEOF_PCKT_TYPE2	3
 #define SIZEOF_PCKT_TYPE3	4
 
+#define SIZEOF_HEADERK		15
 
 // ------- del DMX -------
 extern void EXTI4_15_IRQHandler(void);
@@ -195,7 +198,11 @@ unsigned short vpote [LARGO_FILTRO + 1];
 
 //--- FIN DEFINICIONES DE FILTRO ---//
 
-
+const unsigned char s_comm_status [] = {
+		0xCC,	//CC
+		PID_COMMS_STATUS,	//PID
+		0x00	//PDL
+};
 //-------------------------------------------//
 // @brief  Main program.
 // @param  None
@@ -695,6 +702,7 @@ int main(void)
 
 	while (1)
 	{
+		/*
 		if (!timer_standby)		//mando paquete DMX cada 25ms
 		{
 			//me fijo si puedo enviar DMX
@@ -704,6 +712,7 @@ int main(void)
 				timer_standby = 25;	//transmito cada 25ms
 			}
 		}
+		*/
 
 		if (rdm_is_needed)
 		{
@@ -711,12 +720,17 @@ int main(void)
 			if (SendDMX_GetStatus() == PCKT_END_TX)
 			{
 				//puedo enviar
+				data1[0] = 0xCC;
+
 				switch (rdm_is_needed)	//en rdm_is_needed tengo el tipo de paquete a enviar
 				{
-					case PCKT_TYPE0:
-						//cargo paquete RDM modelo 0
+					case PCKT_TYPE0:	//Communication Status (COMMS_STATUS)
+						FillHeaderK((RDMHeaderK *) data1, SIZEOF_HEADERK);
+						FillMDBK((unsigned char *) (data1 + SIZEOF_HEADERK), (unsigned char *) s_comm_status, sizeof(s_comm_status));
 
-						SendRDMPacket(PCKT_INIT, SIZEOF_PCKT_TYPE0);
+
+						//SendRDMPacket(PCKT_INIT, SIZEOF_PCKT_TYPE0);
+						SendRDMPacket(PCKT_INIT, SIZEOF_HEADERK);
 						break;
 
 					case PCKT_TYPE1:
@@ -905,7 +919,7 @@ void ReadPcktS(unsigned char * p)
 }
 
 //en T me llega un pedido de generar paquete RDM
-//paquete: trdm,x\r\n
+//paquete: trdm,x;\r\n
 unsigned char ReadPcktT(unsigned char * p)
 {
 	unsigned char pckt_type;
@@ -922,7 +936,10 @@ unsigned char ReadPcktT(unsigned char * p)
 //
 void FillHeaderK (RDMHeaderK * pH, unsigned char bytes)
 {
+	 //command;
+
 	pH->start_code = 0xCC;
+	pH->message_length = bytes;
 
 	pH->dest_uid[0] = 0x0F;
 	pH->dest_uid[1] = 0x0F;
@@ -938,7 +955,20 @@ void FillHeaderK (RDMHeaderK * pH, unsigned char bytes)
 	pH->src_uid [4] = 0x00;
 	pH->src_uid [5] = 0x00;
 
+	pH->port_id = GET_COMMAND;
+}
 
+void FillMDBK (unsigned char * pMDB, unsigned char * data_to_insert, unsigned char bytes)
+{
+	unsigned short checksum = 0;
+	unsigned char length = 0;
+
+	memcpy(pMDB, data_to_insert, bytes);
+	length = SIZEOF_HEADERK + bytes;
+	//TODO: esto es muy chancho, pero bueno yo ya se ue data1 es el origen del paquete
+	checksum = Checksum(data1, length);
+	data1 [length] = ShortMSB(checksum);
+	data1 [length + 1] = ShortLSB(checksum);
 }
 
 /*

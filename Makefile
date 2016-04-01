@@ -120,7 +120,9 @@ SRC += .\src\hard.c
 ## Core Support
 #SRC += .\startup_src\syscalls.c
 SRC += $(CORELIBDIR)\core_cm0.c
-## used parts of the STM-Library
+
+## used parts of the RDM-Library
+SRC += .\src\rdm_util.c
 
 # List ASM source files here
 ASRC = .\cmsis_boot\startup\startup_stm32f0xx.s

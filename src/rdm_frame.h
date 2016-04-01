@@ -44,7 +44,7 @@ typedef struct {
   uint8_t param_data_length;
   // optional param data
   // checksum [2];
-} RDMHeaderK;
+} RDMKirnoHeader;
 
 //ESTRUCTURA ORIGINAL
 typedef struct {
