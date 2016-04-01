@@ -691,6 +691,7 @@ int main(void)
 	LED_OFF;
 	ii = 0;
 	data1[0] = 0;
+	SendPacketReset();
 
 	while (1)
 	{
@@ -792,7 +793,7 @@ unsigned char ReadPckt(unsigned char * p)
 
 //en R me llega un parametro general
 //del brillo de la habitacion
-//r0,100\r\n
+//r0,100;\r\n
 void ReadPcktR(unsigned char * p)
 {
 	unsigned char new_shine;
@@ -814,7 +815,7 @@ void ReadPcktR(unsigned char * p)
 			orig_shine_room[0] = new_shine;
 			for (ii = 1; ii < 31; ii++)
 			{
-				a = new_shine * orig_shine_room[ii];
+				a = (new_shine + 1) * orig_shine_slider[ii];	//muevo el valor de todos los sliders del room juntos
 				a >>= 8;
 				data1[ii] = a;
 			}
@@ -824,7 +825,7 @@ void ReadPcktR(unsigned char * p)
 			orig_shine_room[1] = new_shine;
 			for (ii = 31; ii < 61; ii++)
 			{
-				a = new_shine * orig_shine_room[ii];
+				a = (new_shine + 1) * orig_shine_slider[ii];
 				a >>= 8;
 				data1[ii] = a;
 			}
@@ -834,7 +835,7 @@ void ReadPcktR(unsigned char * p)
 			orig_shine_room[2] = new_shine;
 			for (ii = 61; ii < 91; ii++)
 			{
-				a = new_shine * orig_shine_room[ii];
+				a = (new_shine + 1) * orig_shine_slider[ii];
 				a >>= 8;
 				data1[ii] = a;
 			}
@@ -844,7 +845,7 @@ void ReadPcktR(unsigned char * p)
 			orig_shine_room[3] = new_shine;
 			for (ii = 91; ii < 121; ii++)
 			{
-				a = new_shine * orig_shine_room[ii];
+				a = (new_shine + 1) * orig_shine_slider[ii];
 				a >>= 8;
 				data1[ii] = a;
 			}
@@ -857,6 +858,7 @@ void ReadPcktR(unsigned char * p)
 
 //en S me llega un parametro particular
 //del brillo de esa lampara pero indicando cada habitacion
+//s0,0,255;\r\n
 void ReadPcktS(unsigned char * p)
 {
 	char room;

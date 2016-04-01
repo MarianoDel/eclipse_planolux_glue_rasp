@@ -25,6 +25,7 @@
 //--- FUNCIONES DEL MODULO ---//
 unsigned char SendDMX_GetStatus (void);
 void SendPacket (unsigned char, unsigned char, unsigned char);
+void SendPacketReset (void);
 void DMX_Ena(void);
 void DMX_Disa(void);
 

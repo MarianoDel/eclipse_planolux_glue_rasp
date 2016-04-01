@@ -41,6 +41,11 @@ unsigned char SendDMX_GetStatus (void)
 	return dmx_state;
 }
 
+void SendPacketReset (void)
+{
+	DMX_TX_PIN_OFF;
+	dmx_state = PCKT_END_TX;
+}
 
 //funcion con maquina de estados, la va llamando TIM16IRQ para ir avanzando en la transmision
 //tiene wrappers para DMX y RDM
