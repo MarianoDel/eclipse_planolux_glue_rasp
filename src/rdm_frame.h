@@ -38,13 +38,13 @@ typedef struct {
   uint8_t src_uid[UID_LENGTH];
   uint8_t port_id;
 
-  //-- DUB internals --
+  //-- MDB internals --		Message Data Block
   uint8_t command_class;
   uint16_t param_id;
   uint8_t param_data_length;
   // optional param data
   // checksum [2];
-} RDMKirnoHeader;
+} RDMHeaderK;
 
 //ESTRUCTURA ORIGINAL
 typedef struct {

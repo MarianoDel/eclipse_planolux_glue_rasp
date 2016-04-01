@@ -162,8 +162,8 @@ unsigned char ReadPckt(unsigned char *);
 void ReadPcktR(unsigned char *);
 void ReadPcktS(unsigned char *);
 unsigned char ReadPcktT(unsigned char *);
-void FillHeaderK (RDMHeaderK *, unsigned char);
-void FillMDBK (unsigned char *, unsigned char * , unsigned char);
+void FillHeaderK (RDMHeaderK *);
+void FillMDBK (RDMHeaderK *, unsigned char * , unsigned char);
 
 
 //unsigned char GetValue (unsigned char * , const unsigned short * );
@@ -182,6 +182,7 @@ unsigned short GetValue (unsigned char * );
 #define SIZEOF_PCKT_TYPE3	4
 
 #define SIZEOF_HEADERK		15
+#define SIZEOF_CHECKSUM		2
 
 // ------- del DMX -------
 extern void EXTI4_15_IRQHandler(void);
@@ -725,12 +726,10 @@ int main(void)
 				switch (rdm_is_needed)	//en rdm_is_needed tengo el tipo de paquete a enviar
 				{
 					case PCKT_TYPE0:	//Communication Status (COMMS_STATUS)
-						FillHeaderK((RDMHeaderK *) data1, SIZEOF_HEADERK);
-						FillMDBK((unsigned char *) (data1 + SIZEOF_HEADERK), (unsigned char *) s_comm_status, sizeof(s_comm_status));
+						FillHeaderK((RDMHeaderK *) data1);
+						FillMDBK((RDMHeaderK *) data1, (unsigned char *) s_comm_status, sizeof(s_comm_status));
 
-
-						//SendRDMPacket(PCKT_INIT, SIZEOF_PCKT_TYPE0);
-						SendRDMPacket(PCKT_INIT, SIZEOF_HEADERK);
+						SendRDMPacket(PCKT_INIT, (((RDMHeaderK *)data1)->message_length) + SIZEOF_CHECKSUM);
 						break;
 
 					case PCKT_TYPE1:
@@ -934,12 +933,12 @@ unsigned char ReadPcktT(unsigned char * p)
 
 //completa el Header RDM de Kirno
 //
-void FillHeaderK (RDMHeaderK * pH, unsigned char bytes)
+void FillHeaderK (RDMHeaderK * pH)
 {
 	 //command;
 
 	pH->start_code = 0xCC;
-	pH->message_length = bytes;
+	pH->message_length = SIZEOF_HEADERK;		//el header tiene siempre el mismo tamaño
 
 	pH->dest_uid[0] = 0x0F;
 	pH->dest_uid[1] = 0x0F;
@@ -958,17 +957,19 @@ void FillHeaderK (RDMHeaderK * pH, unsigned char bytes)
 	pH->port_id = GET_COMMAND;
 }
 
-void FillMDBK (unsigned char * pMDB, unsigned char * data_to_insert, unsigned char bytes)
+void FillMDBK (RDMHeaderK * pH, unsigned char * pMDB, unsigned char mdb_bytes)
 {
 	unsigned short checksum = 0;
-	unsigned char length = 0;
+	unsigned char * pSt;
 
-	memcpy(pMDB, data_to_insert, bytes);
-	length = SIZEOF_HEADERK + bytes;
-	//TODO: esto es muy chancho, pero bueno yo ya se ue data1 es el origen del paquete
-	checksum = Checksum(data1, length);
-	data1 [length] = ShortMSB(checksum);
-	data1 [length + 1] = ShortLSB(checksum);
+	memcpy((pH + SIZEOF_HEADERK), pMDB, mdb_bytes);
+	pH->message_length += mdb_bytes;
+	checksum = Checksum((unsigned char *) pH, pH->message_length);
+
+	pSt = (unsigned char *) pH;
+	pSt += pH->message_length;
+	*(pSt) = ShortMSB(checksum);
+	*(pSt + 1) = ShortLSB(checksum);
 }
 
 /*
