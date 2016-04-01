@@ -85,6 +85,7 @@ void USART1Send(unsigned char);
 void USART2Send(unsigned char);
 
 void UsartSendDMX (void);
+void UsartSendRDM (unsigned char);
 
 #endif //--- End ---//
 

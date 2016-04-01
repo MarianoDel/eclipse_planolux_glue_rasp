@@ -174,6 +174,10 @@ unsigned short GetValue (unsigned char * );
 #define PCKT_TYPE2	3
 #define PCKT_TYPE3	4
 
+#define SIZEOF_PCKT_TYPE0	1
+#define SIZEOF_PCKT_TYPE1	2
+#define SIZEOF_PCKT_TYPE2	3
+#define SIZEOF_PCKT_TYPE3	4
 
 
 // ------- del DMX -------
@@ -788,9 +792,10 @@ unsigned char ReadPckt(unsigned char * p)
 
 //en R me llega un parametro general
 //del brillo de la habitacion
+//r0,100\r\n
 void ReadPcktR(unsigned char * p)
 {
-	const unsigned char new_shine;
+	unsigned char new_shine;
 	unsigned short ii;
 	unsigned short a;
 
@@ -800,6 +805,8 @@ void ReadPcktR(unsigned char * p)
 	//if ((GetValue((p + 3), &new_shine)) == 0)
 	if (GetValue(p + 3) == 0xffff)
 		return;
+
+	new_shine = GetValue(p + 3);
 
 	switch (*(p+1))
 	{
