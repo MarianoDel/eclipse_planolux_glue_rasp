@@ -69,6 +69,11 @@
 #include "utils.h"
 #include "rdm_util.h"
 
+//librerias RDM_NEW
+#include "rdm_new_frames.h"
+#include "rdm_new.h"
+
+
 //--- VARIABLES EXTERNAS ---//
 volatile unsigned char timer_1seg = 0;
 
