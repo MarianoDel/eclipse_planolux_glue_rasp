@@ -62,8 +62,8 @@
 #define USART2_RX_SOURCE                 GPIO_PinSource3
 #define USART2_RX_AF                     GPIO_AF_1
 
-#define USARTx_RX_ENA	USARTx->CR1 &= 0xfffffffb
-#define USARTx_RX_DISA	USARTx->CR1 |= 0x04
+#define USARTx_RX_DISA	USARTx->CR1 &= 0xfffffffb
+#define USARTx_RX_ENA	USARTx->CR1 |= 0x04
 
 #define SIZEOF_BUFF2	128
 #define SIZEOF_BUFF2_RX		SIZEOF_BUFF2

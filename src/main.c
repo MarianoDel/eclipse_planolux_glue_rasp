@@ -861,7 +861,7 @@ void ReadPcktR(unsigned char * p)
 //s0,0,255;\r\n
 void ReadPcktS(unsigned char * p)
 {
-	char room;
+	unsigned char room;
 	unsigned char slider;
 	unsigned char new_shine;
 	unsigned short ii;
@@ -901,7 +901,7 @@ void ReadPcktS(unsigned char * p)
 
 	ii = (room * 30) + slider + 1;
 	orig_shine_slider[ii] = new_shine;
-	data1[ii] = new_shine;
+	data1[ii] = ((new_shine + 1) * orig_shine_room[room]) >> 8;
 }
 
 //en T me llega un pedido de generar paquete RDM
